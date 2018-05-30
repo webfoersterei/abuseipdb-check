@@ -14,7 +14,7 @@ I am not into python at all - so this script lacks all code standards that may e
 ## Usage
 
 ```
-python3 check_abuseipdb.com -H '127.0.0.1' -K 'MYSECRETAPIKEY'
+python3 check_abuseipdb.py -H '127.0.0.1' -K 'MYSECRETAPIKEY'
 ```
 
 Example Output
