@@ -17,12 +17,20 @@ I am not into python at all - so this script lacks all code standards that may e
 python3 check_abuseipdb.py -H '127.0.0.1' -K 'MYSECRETAPIKEY'
 ```
 
-Example Output
+Parameters:
 ```
-CRITICAL - Reported for: Port Scan, Brute-Force, Web App Attack, SSH
+-V --version: show version and quit
+-H --hostaddress: ip to check
+-K --key: API-Key
+-w --warn: Minimum reports to return a WARN (default: 1)
+-c --crit: Minimum reports to return a CRIT (default: 3)
+-d --days: Timespan to check in days (default: 14)
 ```
 
-If it's WARN or CRIT is determined by optional parameters `--warn` (default: 1) and `--crit` (default: 3) that configure thresholds how many reports were filed against you.
+Example Output
+```
+CRITICAL - Reported 19x (last 14d) for: Port Scan, Brute-Force, Web App Attack, SSH
+```
 
 Return code is:
 
