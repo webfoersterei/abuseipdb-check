@@ -6,7 +6,7 @@ import urllib.request
 import simplejson
 from optparse import OptionParser
 
-VERSION='0.0.3-alpha'
+VERSION='0.0.4-alpha'
 USER_AGENT='abuseipdb_checkscript/%s (Python3/urllib; Github: webfoersterei)' % (VERSION)
 TIMEOUT=5
 BASEURL="https://www.abuseipdb.com/check/{}"
@@ -42,12 +42,16 @@ def abuseip_check(opts):
     if(len(entries) == 0):
         print("OK - No entries found")
         sys.exit(EXIT_OK)
-    elif(len(entries) > opts.criticalCount):
+    elif(len(entries) >= opts.criticalCount):
         print('CRITICAL', end=' - ')
         exitCode = EXIT_CRIT
-    elif(len(entries) > opts.warningCount):
+    elif(len(entries) >= opts.warningCount):
         print('WARN', end=' - ')
         exitCode = EXIT_WARN
+    else:
+        # Its not 0 but also no threashold was reached
+        print('OK', end=' - ')
+        exitCode = EXIT_OK
 
     categories = set()
     for entry in entries:
@@ -79,6 +83,9 @@ def main():
         sys.exit()
     if not opts.key:
         print("API-key is mandatory")
+        sys.exit()
+    if opts.warningCount >= opts.criticalCount:
+        print("Warning count should be less than criticalCount")
         sys.exit()
     if opts.host:
         try:
