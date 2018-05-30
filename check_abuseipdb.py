@@ -6,7 +6,7 @@ import urllib.request
 import simplejson
 from optparse import OptionParser
 
-VERSION='0.0.5-alpha'
+VERSION='0.1.0'
 USER_AGENT='abuseipdb_checkscript/%s (Python3/urllib; Github: webfoersterei)' % (VERSION)
 TIMEOUT=5
 BASEURL="https://www.abuseipdb.com/check/{}"
@@ -27,8 +27,8 @@ EXIT_UNKNOWN = 3
 
 def abuseip_check(opts):
     exitCode = EXIT_UNKNOWN
-    apiurl = BASEURL + '/json?key={}'    
-    requestUrl = apiurl.format(opts.host, opts.key)
+    apiurl = BASEURL + '/json?key={}&days={}'    
+    requestUrl = apiurl.format(opts.host, opts.key, opts.days)
     headers = {'User-Agent': USER_AGENT}
     request = urllib.request.Request(requestUrl, None, headers)
     try:
@@ -49,7 +49,7 @@ def abuseip_check(opts):
         print('WARN', end=' - ')
         exitCode = EXIT_WARN
     else:
-        # Its not 0 but also no threashold was reached
+        # EntryCount is not 0 but also no threshold was reached
         print('OK', end=' - ')
         exitCode = EXIT_OK
 
@@ -64,7 +64,7 @@ def abuseip_check(opts):
         if category in CATEGORY_NAMES:
             categoryNames.append(CATEGORY_NAMES[category])
 
-    print("Reported {0} times for: {1}".format(len(entries), ', '.join(categoryNames)))
+    print("Reported {0}x (last {1}d) for: {2}".format(len(entries), opts.days, ', '.join(categoryNames)))
     sys.exit(exitCode)
         
 
@@ -76,6 +76,7 @@ def main():
     parser.add_option("-K", "--key", dest="key", help="API-key for abuseipdb.com")
     parser.add_option("-w", "--warn", dest="warningCount", default=1, type=int, help="Threshold for entries so that the return is a WARN")
     parser.add_option("-c", "--crit", dest="criticalCount", default=3, type=int, help="Threshold for entries so that the return is a CRIT")
+    parser.add_option("-d", "--days", dest="days", default=14, type=int, help="Maximum age of reports to take into consideration")
 
     (opts, args) = parser.parse_args()
     if opts.version:
@@ -86,6 +87,9 @@ def main():
         sys.exit()
     if opts.warningCount >= opts.criticalCount:
         print("Warning count should be less than criticalCount")
+        sys.exit()
+    if opts.warningCount <= 0 or opts.criticalCount <= 0 or opts.days <= 0:
+        print("Parameters --warn, --crit, and --days should all be greater 0")
         sys.exit()
     if opts.host:
         try:
