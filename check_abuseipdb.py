@@ -6,7 +6,7 @@ import urllib.request
 import simplejson
 from optparse import OptionParser
 
-VERSION='0.0.4-alpha'
+VERSION='0.0.5-alpha'
 USER_AGENT='abuseipdb_checkscript/%s (Python3/urllib; Github: webfoersterei)' % (VERSION)
 TIMEOUT=5
 BASEURL="https://www.abuseipdb.com/check/{}"
@@ -33,8 +33,8 @@ def abuseip_check(opts):
     request = urllib.request.Request(requestUrl, None, headers)
     try:
         response = urllib.request.urlopen(request, timeout=TIMEOUT).read()
-    except Exception:
-        print('UNKNOWN - Problem querying API')
+    except Exception as ex:
+        print('UNKNOWN - Problem querying API: {0}'.format(ex))
         sys.exit(exitCode)
     
     entries = simplejson.loads(response)
