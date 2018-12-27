@@ -66,8 +66,9 @@ def abuseip_check(opts):
 
     print("Reported {0}x (last {1}d) for: {2}".format(len(entries), opts.days, ', '.join(categoryNames)))
     sys.exit(exitCode)
-        
 
+def normalizeOptions(hostaddress, apiKey, warningThreashold, criticalThreshold, daysToQuery):
+    pass
 
 def main():
     parser = OptionParser("usage: %prog -H <IP address> -K <API key>")
@@ -79,6 +80,9 @@ def main():
     parser.add_option("-d", "--days", dest="days", default=14, type=int, help="Maximum age of reports to take into consideration")
 
     (opts, args) = parser.parse_args()
+
+    normalizeOptions(opts.host, opts.key, opts.warningCount, opts.criticalCount, opts.days)
+
     if opts.version:
         print("check_abuseipdb.py %s"%VERSION)
         sys.exit()
