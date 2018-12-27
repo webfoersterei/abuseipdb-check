@@ -3,7 +3,7 @@ import simplejson
 from AbuseIpDbCheckOptions import AbuseIpDbCheckOptions
 
 class AbuseIpDbChecker(object):
-    VERSION='1.0.0'
+    VERSION='0.2.0'
     TIMEOUT=5
     USER_AGENT='abuseipdb_checkscript/%s (Python3/urllib; Github: webfoersterei)' % (VERSION)
     BASEURL="https://www.abuseipdb.com/check/{}"

@@ -22,7 +22,7 @@ def main():
     (opts, _) = parser.parse_args()
 
     if opts.version:
-        print("check_abuseipdb.py %s"%AbuseIpDbChecker.VERSION)
+        print("check_abuseipdb.py v%s (2018-12-27)\nAuthor: Timo Förster\nGithub: https://github.com/webfoersterei/abuseipdb-check"%AbuseIpDbChecker.VERSION)
         sys.exit()
 
     exitCode = AbuseIpDbChecker.EXIT_UNKNOWN
