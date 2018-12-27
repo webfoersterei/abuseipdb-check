@@ -5,6 +5,7 @@ import ipaddress
 import urllib.request
 import simplejson
 from optparse import OptionParser
+from AbuseIpDbCheckOptions import AbuseIpDbCheckOptions
 
 VERSION='0.1.0'
 USER_AGENT='abuseipdb_checkscript/%s (Python3/urllib; Github: webfoersterei)' % (VERSION)
@@ -25,27 +26,26 @@ EXIT_WARN = 1
 EXIT_CRIT = 2
 EXIT_UNKNOWN = 3
 
-def abuseip_check(opts):
-    exitCode = EXIT_UNKNOWN
+def queryEntriesFromApi(checkOptions: AbuseIpDbCheckOptions) -> object:
+    ''' Will get entries from API and return an python object with all entries '''
     apiurl = BASEURL + '/json?key={}&days={}'    
-    requestUrl = apiurl.format(opts.host, opts.key, opts.days)
+    requestUrl = apiurl.format(checkOptions.hostaddress, checkOptions.apiKey, checkOptions.daysToQuery)
     headers = {'User-Agent': USER_AGENT}
     request = urllib.request.Request(requestUrl, None, headers)
-    try:
-        response = urllib.request.urlopen(request, timeout=TIMEOUT).read()
-    except Exception as ex:
-        print('UNKNOWN - Problem querying API: {0}'.format(ex))
-        sys.exit(exitCode)
     
-    entries = simplejson.loads(response)
+    response = urllib.request.urlopen(request, timeout=TIMEOUT).read()
 
+    return simplejson.loads(response)
+
+def analyseEntries(checkOptions: AbuseIpDbCheckOptions, entries: list) -> int:
+    ''' Will print some information and return the exit code '''
     if(len(entries) == 0):
         print("OK - No entries found")
         sys.exit(EXIT_OK)
-    elif(len(entries) >= opts.criticalCount):
+    elif(len(entries) >= checkOptions.criticalThreshold):
         print('CRITICAL', end=' - ')
         exitCode = EXIT_CRIT
-    elif(len(entries) >= opts.warningCount):
+    elif(len(entries) >= checkOptions.warningThreshold):
         print('WARN', end=' - ')
         exitCode = EXIT_WARN
     else:
@@ -54,6 +54,7 @@ def abuseip_check(opts):
         exitCode = EXIT_OK
 
     categories = set()
+
     for entry in entries:
         if len(entry['category']) > 0:
             for cat in entry['category']:
@@ -64,11 +65,11 @@ def abuseip_check(opts):
         if category in CATEGORY_NAMES:
             categoryNames.append(CATEGORY_NAMES[category])
 
-    print("Reported {0}x (last {1}d) for: {2}".format(len(entries), opts.days, ', '.join(categoryNames)))
-    sys.exit(exitCode)
+    print("Reported {0}x (last {1}d) for: {2}".format(len(entries), checkOptions.daysToQuery, ', '.join(categoryNames)))
+    return exitCode
 
 def normalizeOptions(hostaddress, apiKey, warningThreashold, criticalThreshold, daysToQuery):
-    pass
+    return AbuseIpDbCheckOptions(hostaddress, apiKey, warningThreashold, criticalThreshold, daysToQuery)
 
 def main():
     parser = OptionParser("usage: %prog -H <IP address> -K <API key>")
@@ -79,31 +80,27 @@ def main():
     parser.add_option("-c", "--crit", dest="criticalCount", default=3, type=int, help="Threshold for entries so that the return is a CRIT")
     parser.add_option("-d", "--days", dest="days", default=14, type=int, help="Maximum age of reports to take into consideration")
 
-    (opts, args) = parser.parse_args()
-
-    normalizeOptions(opts.host, opts.key, opts.warningCount, opts.criticalCount, opts.days)
+    (opts, _) = parser.parse_args()
 
     if opts.version:
         print("check_abuseipdb.py %s"%VERSION)
         sys.exit()
-    if not opts.key:
-        print("API-key is mandatory")
-        sys.exit()
-    if opts.warningCount >= opts.criticalCount:
-        print("Warning count should be less than criticalCount")
-        sys.exit()
-    if opts.warningCount <= 0 or opts.criticalCount <= 0 or opts.days <= 0:
-        print("Parameters --warn, --crit, and --days should all be greater 0")
-        sys.exit()
-    if opts.host:
-        try:
-            ip = ipaddress.ip_address(opts.host)  
-        except ValueError:
-            parser.error("Incorrect IP Address.")
-        abuseip_check(opts)
-    else:
-        print("Hostaddress is mandatory")
-        sys.exit()
+
+    exitCode = EXIT_UNKNOWN
+    checkOptions = normalizeOptions(opts.host, opts.key, opts.warningCount, opts.criticalCount, opts.days)
+    
+    try:
+        entries = queryEntriesFromApi(checkOptions)
+        
+        if(type(entries) == dict):
+            entries = [entries]
+        
+        exitCode = analyseEntries(checkOptions, entries)
+    except Exception as ex:
+        print('UNKNOWN - Problem querying API: {0}'.format(ex))
+        sys.exit(EXIT_UNKNOWN)
+
+    sys.exit(exitCode)
  
 if __name__ == '__main__':
     main()
