@@ -39,3 +39,31 @@ Return code is:
 - WARN = 1
 - CRIT = 2
 - UNKNOWN = 3
+
+## CheckCommand Definition
+Example config to integrate as checkCommand in icinga2 / nagios:
+```
+object CheckCommand "abuseipdb" {
+        command = [ PluginDir + "/check_abuseipdb" ]
+
+        arguments = {
+                "-host" = {
+                    value   =   "$address$"
+                }
+                "-key" = {
+                    value   =   "$apikey$"
+                }
+                "-warn" = { 
+                    value   =   "$warn_count$"
+                }
+                "-crit" = {
+                    value   =   "$crit_count$"
+                }
+        }
+
+        vars.address = "$check_address$"
+        vars.apikey = "MYSECRETAPIKEY"
+        vars.warn_count = 1
+        vars.crit_count = 3
+}
+```
