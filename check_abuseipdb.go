@@ -9,6 +9,9 @@ import (
 	"os"
 )
 
+var version string
+var compileDate string
+
 const EXIT_CODE_OK = 0
 const EXIT_CODE_WARN = 1
 const EXIT_CODE_CRIT = 2
@@ -43,8 +46,14 @@ func main() {
 	daysToCheck := flag.Int("days", 14, "Timespan to check in days")
 	warnCount := flag.Int("warn", 1, "Minimum reports to return a WARN")
 	critCount := flag.Int("crit", 3, "Minimum reports to return a CRIT")
+	versionPrint := flag.Bool("version", false, "Prints the version and exits")
 
 	flag.Parse()
+
+	if *versionPrint {
+		fmt.Printf("Version %s (compiled at %s)\ngithub: https://github.com/webfoersterei/abuseipdb-check\n", version, compileDate)
+		os.Exit(0)
+	}
 
 	apiResult, err := getEntryCount(apiKey, address, daysToCheck)
 	if err != nil {
