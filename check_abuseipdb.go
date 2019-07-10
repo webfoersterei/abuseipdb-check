@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 )
 
 var version string
@@ -53,6 +54,16 @@ func main() {
 	if *versionPrint {
 		fmt.Printf("Version %s (compiled at %s)\ngithub: https://github.com/webfoersterei/abuseipdb-check\n", version, compileDate)
 		os.Exit(0)
+	}
+
+	if len(strings.Trim(*address, " ")) == 0 {
+		fmt.Printf("Invalid arguments: No address provided: '%s'\n", *address)
+		os.Exit(1)
+	}
+
+	if *warnCount > *critCount {
+		fmt.Printf("Invalid arguments: WarnCount (%d) greater then CritCount (%d)\n", *warnCount, *critCount)
+		os.Exit(1)
 	}
 
 	apiResult, err := getEntryCount(apiKey, address, daysToCheck)
