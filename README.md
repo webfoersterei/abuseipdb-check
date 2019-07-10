@@ -22,6 +22,8 @@ Parameters:
     Host to check
 -key string
     abuseipdb APIv2 key
+-version
+    Prints the version and exits
 -warn int
     Minimum reports to return a WARN (default 1)
 ```
