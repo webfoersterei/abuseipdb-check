@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 var version string
@@ -127,7 +128,9 @@ func main() {
 func getEntryCount(apiKey *string, address *string, daysToCheck *int) (AbuseIpDbCheckData, error) {
 	url := fmt.Sprintf("https://api.abuseipdb.com/api/v2/check?ipAddress=%s&maxAgeInDays=%d&verbose=1", *address, *daysToCheck)
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: time.Second * 30,
+	}
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
