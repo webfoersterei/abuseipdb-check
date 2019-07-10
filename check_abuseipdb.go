@@ -18,27 +18,65 @@ const EXIT_CODE_WARN = 1
 const EXIT_CODE_CRIT = 2
 const EXIT_CODE_UNKNOWN = 3
 
+var ABUSEIPDB_CATEGORIES = map[int]string{
+	3: "Fraud Orders", 4: "DDoS Attack",
+	5: "FTP Brute-Force", 6: "Ping of Death",
+	7: "Phishing", 8: "Fraud VoIP",
+	9: "Open Proxy", 10: "Web Spam",
+	11: "Email Spam", 12: "Blog Spam",
+	13: "VPN IP", 14: "Port Scan",
+	15: "Hacking", 16: "SQL Injection",
+	17: "Spoofing", 18: "Brute-Force",
+	19: "Bad Web Bot", 20: "Exploited Host",
+	21: "Web App Attack", 22: "SSH", 23: "IoT Targeted",
+}
+
 type AbuseIpDbCheckResponse struct {
 	Data AbuseIpDbCheckData `json:"data"`
 }
 
 type AbuseIpDbCheckData struct {
-	IpAddress            string `json:"ipAddress"`
-	IsPublic             bool   `json:"isPublic"`
-	IpVersion            int    `json:"ipVersion"`
-	IsWhitelisted        bool   `json:"isWhitelisted"`
-	AbuseConfidenceScore int    `json:"abuseConfidenceScore"`
-	CountryCode          string `json:"countryCode"`
-	UsageType            string `json:"usageType"`
-	Isp                  string `json:"isp"`
-	Domain               string `json:"domain"`
-	TotalReports         int    `json:"totalReports"`
-	NumDistinctUsers     int    `json:"numDistinctUsers"`
-	LastReportedAt       string `json:"lastReportedAt"`
+	IpAddress            string                 `json:"ipAddress"`
+	IsPublic             bool                   `json:"isPublic"`
+	IpVersion            int                    `json:"ipVersion"`
+	IsWhitelisted        bool                   `json:"isWhitelisted"`
+	AbuseConfidenceScore int                    `json:"abuseConfidenceScore"`
+	CountryCode          string                 `json:"countryCode"`
+	UsageType            string                 `json:"usageType"`
+	Isp                  string                 `json:"isp"`
+	Domain               string                 `json:"domain"`
+	TotalReports         int                    `json:"totalReports"`
+	NumDistinctUsers     int                    `json:"numDistinctUsers"`
+	LastReportedAt       string                 `json:"lastReportedAt"`
+	Reports              []AbuseIpDbCheckReport `json:"reports"`
 }
 
-func buildStatusMessage(totalReports int, totalUsers int, abuseScore int) string {
-	return fmt.Sprintf("Found %d entries from %d users (Abuse Probability: %d%%)", totalReports, totalUsers, abuseScore)
+type AbuseIpDbCheckReport struct {
+	ReportedAt          string `json:"reportedAt"`
+	Comment             string `json:"comment"`
+	Categories          []int  `json:"categories"`
+	ReporterId          int    `json:"reporterId"`
+	ReporterCountryCode string `json:"reporterCountryCode"`
+	ReporterCountryName string `json:"reporterCountryName"`
+}
+
+func buildStatusMessage(checkData AbuseIpDbCheckData) string {
+	var reasonStr string
+
+	if len(checkData.Reports) > 0 {
+		var reasons = make(map[int]string) // Slice of *unique* reason strings
+		for _, report := range checkData.Reports {
+			for _, categoryId := range report.Categories {
+				reasons[categoryId] = ABUSEIPDB_CATEGORIES[categoryId]
+			}
+		}
+
+		for _, reason := range reasons {
+			reasonStr += reason + ", "
+		}
+	}
+	return strings.TrimRight(fmt.Sprintf("Found %d entries from %d users (Abuse Probability: %d%%) %s",
+		checkData.TotalReports, checkData.NumDistinctUsers, checkData.AbuseConfidenceScore, reasonStr), ", ")
 }
 
 func main() {
@@ -72,7 +110,7 @@ func main() {
 		os.Exit(EXIT_CODE_UNKNOWN)
 	}
 
-	statusMessage := buildStatusMessage(apiResult.TotalReports, apiResult.NumDistinctUsers, apiResult.AbuseConfidenceScore)
+	statusMessage := buildStatusMessage(apiResult)
 
 	if apiResult.TotalReports >= *critCount {
 		fmt.Printf("CRITICAL - %s", statusMessage)
@@ -87,7 +125,7 @@ func main() {
 }
 
 func getEntryCount(apiKey *string, address *string, daysToCheck *int) (AbuseIpDbCheckData, error) {
-	url := fmt.Sprintf("https://api.abuseipdb.com/api/v2/check?ipAddress=%s&maxAgeInDays=%d", *address, *daysToCheck)
+	url := fmt.Sprintf("https://api.abuseipdb.com/api/v2/check?ipAddress=%s&maxAgeInDays=%d&verbose=1", *address, *daysToCheck)
 
 	client := &http.Client{}
 

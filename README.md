@@ -28,17 +28,12 @@ Parameters:
     Minimum reports to return a WARN (default 1)
 ```
 
-Example Output
-```
-CRITICAL - Found 4 entries from 3 users (Abuse Probability: 34%)
-```
+Output examples
+* `OK - Found 0 entries from 0 users (Abuse Probability: 0%)` with exit code `0`
+* `WARNING - Found 1 entries from 1 users (Abuse Probability: 4%) Port Scan, IoT Targeted` with exit code `1`
+* `CRITICAL - Found 4 entries from 3 users (Abuse Probability: 34%) Email Spam, Hacking, Brute-Force` with exit code `2`
+* `UNKNOWN - Error:  Get https://api.abuseipdb.com/api/v2/check?ipAddress=127.0.0.1: dial tcp: lookup api.abuseipdb.com: no such host` with exit code `3`
 
-Return code is:
-
-- OK = 0
-- WARN = 1
-- CRIT = 2
-- UNKNOWN = 3
 
 ## CheckCommand Definition
 Example config to integrate as checkCommand in icinga2 / nagios:
