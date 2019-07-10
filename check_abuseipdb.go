@@ -137,6 +137,7 @@ func getEntryCount(apiKey *string, address *string, daysToCheck *int) (AbuseIpDb
 		return AbuseIpDbCheckData{}, err
 	}
 
+	req.Header.Add("User-Agent", fmt.Sprintf("check_abuseipdb/%s (golang/http; Github: webfoersterei)", version))
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Key", *apiKey)
 	resp, err := client.Do(req)
