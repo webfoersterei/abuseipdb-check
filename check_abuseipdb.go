@@ -91,7 +91,7 @@ func main() {
 	flag.Parse()
 
 	if *versionPrint {
-		fmt.Printf("Version %s (compiled at %s)\ngithub: https://github.com/webfoersterei/abuseipdb-check\n", version, compileDate)
+		fmt.Printf("abuseipdb-check - version %s (compiled at %s)\nCopyright (c) 2019 webförsterei Softwareentwicklung GmbH & Co. KG (MIT-License applies)\ngithub.com/webfoersterei/abuseipdb-check\n", version, compileDate)
 		os.Exit(0)
 	}
 
