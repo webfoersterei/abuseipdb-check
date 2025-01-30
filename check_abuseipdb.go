@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -14,12 +16,14 @@ import (
 var version string
 var compileDate string
 
-const EXIT_CODE_OK = 0
-const EXIT_CODE_WARN = 1
-const EXIT_CODE_CRIT = 2
-const EXIT_CODE_UNKNOWN = 3
+const (
+	ExitCodeOk = iota
+	ExitCodeWarning
+	ExitCodeCritical
+	ExitCodeUnknown
+)
 
-var ABUSEIPDB_CATEGORIES = map[int]string{
+var AbuseIpDbCategories = map[int]string{
 	3: "Fraud Orders", 4: "DDoS Attack",
 	5: "FTP Brute-Force", 6: "Ping of Death",
 	7: "Phishing", 8: "Fraud VoIP",
@@ -68,7 +72,7 @@ func buildStatusMessage(checkData AbuseIpDbCheckData) string {
 		var reasons = make(map[int]string) // Slice of *unique* reason strings
 		for _, report := range checkData.Reports {
 			for _, categoryId := range report.Categories {
-				reasons[categoryId] = ABUSEIPDB_CATEGORIES[categoryId]
+				reasons[categoryId] = AbuseIpDbCategories[categoryId]
 			}
 		}
 
@@ -76,8 +80,8 @@ func buildStatusMessage(checkData AbuseIpDbCheckData) string {
 			reasonStr += reason + ", "
 		}
 	}
-	return strings.TrimRight(fmt.Sprintf("Found %d entries from %d users (Abuse Probability: %d%%) %s",
-		checkData.TotalReports, checkData.NumDistinctUsers, checkData.AbuseConfidenceScore, reasonStr), ", ")
+	return strings.TrimRight(fmt.Sprintf("Found %d entries for %s from %d users (Abuse Probability: %d%%) %s",
+		checkData.TotalReports, checkData.IpAddress, checkData.NumDistinctUsers, checkData.AbuseConfidenceScore, reasonStr), ", ")
 }
 
 func main() {
@@ -92,37 +96,42 @@ func main() {
 
 	if *versionPrint {
 		fmt.Printf("abuseipdb-check - version %s (compiled at %s)\nCopyright (c) 2024 webförsterei Softwareentwicklung GmbH & Co. KG (MIT-License applies)\ngithub.com/webfoersterei/abuseipdb-check\n", version, compileDate)
-		os.Exit(0)
+		os.Exit(ExitCodeOk)
 	}
 
 	if len(strings.Trim(*address, " ")) == 0 {
-		fmt.Printf("Invalid arguments: No address provided: '%s'\n", *address)
-		os.Exit(1)
+		fmt.Print("Invalid arguments: No address provided via -host")
+		os.Exit(ExitCodeUnknown)
+	}
+
+	if len(strings.Trim(*apiKey, " ")) == 0 {
+		fmt.Print("Invalid arguments: No API-Key provided via -key")
+		os.Exit(ExitCodeUnknown)
 	}
 
 	if *warnCount > *critCount {
 		fmt.Printf("Invalid arguments: WarnCount (%d) greater then CritCount (%d)\n", *warnCount, *critCount)
-		os.Exit(1)
+		os.Exit(ExitCodeUnknown)
 	}
 
 	apiResult, err := getEntryCount(apiKey, address, daysToCheck)
 	if err != nil {
 		fmt.Println("UNKNOWN - Error: ", err)
-		os.Exit(EXIT_CODE_UNKNOWN)
+		os.Exit(ExitCodeUnknown)
 	}
 
 	statusMessage := buildStatusMessage(apiResult)
 
 	if apiResult.TotalReports >= *critCount {
 		fmt.Printf("CRITICAL - %s", statusMessage)
-		os.Exit(EXIT_CODE_CRIT)
+		os.Exit(ExitCodeCritical)
 	} else if apiResult.TotalReports >= *warnCount {
 		fmt.Printf("WARNING - %s", statusMessage)
-		os.Exit(EXIT_CODE_WARN)
+		os.Exit(ExitCodeWarning)
 	}
 
 	fmt.Printf("OK - %s", statusMessage)
-	os.Exit(EXIT_CODE_OK)
+	os.Exit(ExitCodeOk)
 }
 
 func getEntryCount(apiKey *string, address *string, daysToCheck *int) (AbuseIpDbCheckData, error) {
@@ -146,13 +155,20 @@ func getEntryCount(apiKey *string, address *string, daysToCheck *int) (AbuseIpDb
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return AbuseIpDbCheckData{}, err
 	}
 
+	if resp.StatusCode != 200 {
+		return AbuseIpDbCheckData{}, errors.New(string(bytes.TrimSpace(body)))
+	}
+
 	response := AbuseIpDbCheckResponse{}
-	json.Unmarshal(body, &response)
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return AbuseIpDbCheckData{}, err
+	}
 
 	return response.Data, err
 }
